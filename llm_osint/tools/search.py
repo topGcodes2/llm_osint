@@ -200,7 +200,7 @@ class GoogleSerperSearchWrapper(BrightDataSerperAPIWrapper):
 
 
 def get_search_tool(**kwargs) -> Tool:
-    search = GoogleSerperSearchWrapper(**kwargs)
+    search = BrightDataSerperAPIWrapper(**kwargs)
     return Tool(
         name="Search Term",
         func=search.run,
