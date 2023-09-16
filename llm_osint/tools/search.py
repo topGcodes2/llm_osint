@@ -1,10 +1,164 @@
-from langchain.utilities import GoogleSerperAPIWrapper
 from langchain.agents import Tool
 
 from llm_osint import cache_utils
+from langchain.utils import get_from_dict_or_env
 
 
-class GoogleSerperSearchWrapper(GoogleSerperAPIWrapper):
+from typing import Any, Dict, List, Optional
+from urllib.request import build_opener, ProxyHandler, Request
+from langchain.pydantic_v1 import BaseModel, root_validator
+
+from typing_extensions import Literal
+import aiohttp
+import json
+
+
+class BrightDataSerperAPIWrapper(BaseModel):
+    k: int = 10
+    gl: str = "us"
+    hl: str = "en"
+    type: Literal["news", "search", "places", "images"] = "search"
+    brightdata_api_key: Optional[str] = None
+    host: str
+    username: str
+    password: str
+    aiosession: Optional[aiohttp.ClientSession] = None
+    result_key_for_type = {
+        "news": "news",
+        "places": "places",
+        "images": "images",
+        "search": "organic",
+    }
+
+    class Config:
+        arbitrary_types_allowed = True
+
+    @root_validator()
+    def validate_environment(cls, values: Dict) -> Dict:
+            """Validate that necessary credentials exist in environment."""
+            # Validate host
+            host = get_from_dict_or_env(values, "host", "YOUR_HOST")
+            values["host"] = host
+
+            # Validate username
+            username = get_from_dict_or_env(values, "username", "YOUR_USERNAME")
+            values["username"] = username
+
+            # Validate password
+            password = get_from_dict_or_env(values, "password", "YOUR_PASSWORD")
+            values["password"] = password
+
+            return values
+
+    def results(self, query: str, **kwargs: Any) -> Dict:
+        return self._brightdata_serper_api_results(query, **kwargs)
+
+    async def aresults(self, query: str, **kwargs: Any) -> Dict:
+        return await self._async_brightdata_serper_api_results(query, **kwargs)
+
+    def run(self, query: str, **kwargs: Any) -> str:
+        results = self._brightdata_serper_api_results(query, **kwargs)
+        return self._parse_results(results)
+
+    async def arun(self, query: str, **kwargs: Any) -> str:
+        results = await self._async_brightdata_serper_api_results(query, **kwargs)
+        return self._parse_results(results)
+
+    def _brightdata_serper_api_results(self, search_term: str, **kwargs: Any) -> dict:
+        proxy_url = f"http://{self.username}:{self.password}@{self.host}"
+        opener = build_opener(ProxyHandler({'http': proxy_url, 'https': proxy_url}))
+        
+        headers = {
+            "X-API-KEY": self.brightdata_api_key or "",
+            "Content-Type": "application/json",
+        }
+        
+        params = {
+            "q": search_term,
+            **{key: value for key, value in kwargs.items() if value is not None},
+        }
+        
+        full_url = f"{self.host}/search_type?{'&'.join([f'{k}={v}' for k, v in params.items()])}"
+        
+        request = Request(full_url, headers=headers)
+        response = opener.open(request)
+        search_results = json.loads(response.read().decode('utf-8'))
+        
+        return search_results
+
+    async def _async_brightdata_serper_api_results(self, search_term: str, **kwargs: Any) -> dict:
+        proxy_url = f"http://{self.username}:{self.password}@{self.host}"
+        headers = {
+            "X-API-KEY": self.brightdata_api_key or "",
+            "Content-Type": "application/json",
+        }
+        
+        params = {
+            "q": search_term,
+            **{key: value for key, value in kwargs.items() if value is not None},
+        }
+        
+        full_url = f"{self.host}/search_type?{'&'.join([f'{k}={v}' for k, v in params.items()])}"
+        
+        async with aiohttp.ClientSession() as session:
+            async with session.get(full_url, proxy=proxy_url, headers=headers) as response:
+                search_results = await response.json()
+        
+        return search_results
+
+
+    def _parse_snippets(self, results: dict) -> List[str]:
+        snippets = []
+
+        # Parsing Knowledge Graph, if available
+        kg = results.get("knowledgeGraph", {})
+        if kg:
+            title = kg.get("title")
+            type_ = kg.get("type")
+            description = kg.get("description")
+            snippets.append(f"Knowledge Graph: {title} ({type_}) - {description}")
+
+            # Adding attributes from Knowledge Graph
+            for attr, value in kg.get("attributes", {}).items():
+                snippets.append(f"{attr}: {value}")
+
+        # Parsing organic search results
+        for result in results.get("organic", [])[:self.k]:
+            snippet = result.get("snippet")
+            if snippet:
+                snippets.append(snippet)
+            
+            title = result.get("title")
+            if title:
+                snippets.append(f"Title: {title}")
+
+            link = result.get("link")
+            if link:
+                snippets.append(f"URL: {link}")
+
+        # Parsing 'People Also Ask'
+        paa = results.get("peopleAlsoAsk", [])
+        for item in paa:
+            question = item.get("question")
+            answer = item.get("snippet")
+            snippets.append(f"People Also Ask: {question} - {answer}")
+
+        # Parsing 'Related Searches'
+        rs = results.get("relatedSearches", [])
+        for item in rs:
+            query = item.get("query")
+            snippets.append(f"Related Search: {query}")
+
+        if len(snippets) == 0:
+            return ["No good search result was found"]
+            
+        return snippets
+
+    def _parse_results(self, results: dict) -> str:
+        return " ".join(self._parse_snippets(results))
+
+
+class GoogleSerperSearchWrapper(BrightDataSerperAPIWrapper):
     @cache_utils.cache_func
     def run(self, query: str) -> str:
         return super().run(query)
