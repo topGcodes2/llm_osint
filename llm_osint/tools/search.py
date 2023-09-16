@@ -220,8 +220,10 @@ class GoogleSerperSearchWrapper(BrightDataSerperAPIWrapper):
         return "\n\n".join(snippets)
 
 
-def get_search_tool(**kwargs) -> Tool:
-    search = BrightDataSerperAPIWrapper(**kwargs)
+def get_search_tool(credentials: Dict[str, str], **kwargs) -> Tool:
+    # Merging credentials with any other optional parameters
+    all_kwargs = {**credentials, **kwargs}
+    search = BrightDataSerperAPIWrapper(**all_kwargs)
     return Tool(
         name="Search Term",
         func=search.run,
