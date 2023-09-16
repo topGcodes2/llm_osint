@@ -36,14 +36,9 @@ Given these details about {name}.
 {question}
 """
 
-credentials = {
-    'host': '',
-    'username': '',
-    'password': ''
-}
 
 def build_web_agent(name):
-    tools = [get_search_tool(credentials), get_read_link_tool(name=name, example_instructions=SCRAPING_INSTRUCTIONS)]
+    tools = [get_search_tool(), get_read_link_tool(name=name, example_instructions=SCRAPING_INSTRUCTIONS)]
     return web_agent.build_web_agent(tools)
 
 
