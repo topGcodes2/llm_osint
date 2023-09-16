@@ -1,3 +1,9 @@
+# Fork Features
+llm_osint with local models running on oobagooba local, replacing openai enpoints, brightdata replacing both serper.dev and scrapingbee.
+
+Work in progress.
+
+
 # llm_osint
 
 > LLM OSINT is a proof-of-concept method of using LLMs to gather information from the internet and then perform a task with this information.
