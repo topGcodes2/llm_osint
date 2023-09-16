@@ -12,10 +12,6 @@ import aiohttp
 import json
 import os
 
-os.environ["YOUR_HOST"]
-os.environ["YOUR_USERNAME"]
-os.environ["YOUR_PASSWORD"]
-
 
 class BrightDataSerperAPIWrapper(BaseModel):
     k: int = 10
@@ -193,3 +189,20 @@ def get_search_tool(**kwargs) -> Tool:
         func=search.run,
         description="useful for when you need to find information about general things, names, usernames, places, etc. the input should be a search term",
     )
+
+from llm_osint.tools.search import GoogleSerperSearchWrapper
+
+
+# Ensure required environment variables are set
+required_env_vars = ["YOUR_HOST", "YOUR_USERNAME", "YOUR_PASSWORD"]
+for env_var in required_env_vars:
+    if env_var not in os.environ:
+        raise ValueError(f"Environment variable {env_var} is not set.")
+
+
+# Provide the required information
+search_tool = GoogleSerperSearchWrapper(
+    host=os.environ["YOUR_HOST"],
+    username=os.environ["YOUR_USERNAME"],
+    password=os.environ["YOUR_PASSWORD"]
+)
