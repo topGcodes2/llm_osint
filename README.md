@@ -1,5 +1,5 @@
 # Fork Features
-llm_osint with local models running on oobagooba local, replacing openai enpoints, brightdata replacing both serper.dev and scrapingbee.
+llm_osint with local models running on oobagooba local, replacing openai enpoints to lower costs and make more accessible, brightdata replacing both serper.dev and scrapingbee.
 
 Work in progress.
 
