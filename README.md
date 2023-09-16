@@ -3,6 +3,7 @@ llm_osint with local models running on oobagooba local, replacing openai enpoint
 
 Work in progress.
 
+Recommended model: https://huggingface.co/TheBloke/LLongMA-2-7B-GGUF/tree/main should have enough context length.
 
 # llm_osint
 
