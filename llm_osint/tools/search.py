@@ -12,27 +12,10 @@ import aiohttp
 import json
 import os
 
+os.environ["YOUR_HOST"]
+os.environ["YOUR_USERNAME"]
+os.environ["YOUR_PASSWORD"]
 
-def get_from_dict_or_env(values: dict, key: str, env_var: str) -> str:
-    """
-    Fetch a value either from a dictionary or from environment variables.
-    
-    Parameters:
-    - values (dict): The dictionary from which to fetch the value.
-    - key (str): The key in the dictionary to look for.
-    - env_var (str): The name of the environment variable to look for.
-    
-    Returns:
-    - str: The value fetched either from the dictionary or the environment variable.
-    """
-    # First, try to get the value from the dictionary
-    value = values.get(key, None)
-    
-    # If the value is None, try to get it from the environment variable
-    if value is None:
-        value = os.environ.get(env_var, None)
-    
-    return value
 
 class BrightDataSerperAPIWrapper(BaseModel):
     k: int = 10
@@ -53,23 +36,6 @@ class BrightDataSerperAPIWrapper(BaseModel):
 
     class Config:
         arbitrary_types_allowed = True
-
-    @root_validator()
-    def validate_environment(cls, values: Dict) -> Dict:
-            """Validate that necessary credentials exist in environment."""
-            # Validate host
-            host = get_from_dict_or_env(values, "host", "YOUR_HOST")
-            values["host"] = host
-
-            # Validate username
-            username = get_from_dict_or_env(values, "username", "YOUR_USERNAME")
-            values["username"] = username
-
-            # Validate password
-            password = get_from_dict_or_env(values, "password", "YOUR_PASSWORD")
-            values["password"] = password
-
-            return values
 
     def results(self, query: str, **kwargs: Any) -> Dict:
         return self._brightdata_serper_api_results(query, **kwargs)
@@ -220,10 +186,8 @@ class GoogleSerperSearchWrapper(BrightDataSerperAPIWrapper):
         return "\n\n".join(snippets)
 
 
-def get_search_tool(credentials: Dict[str, str], **kwargs) -> Tool:
-    # Merging credentials with any other optional parameters
-    all_kwargs = {**credentials, **kwargs}
-    search = BrightDataSerperAPIWrapper(**all_kwargs)
+def get_search_tool(**kwargs) -> Tool:
+    search = GoogleSerperSearchWrapper(**kwargs)
     return Tool(
         name="Search Term",
         func=search.run,
