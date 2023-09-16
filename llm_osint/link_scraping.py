@@ -7,25 +7,37 @@ from llm_osint import cache_utils
 
 MAX_LINK_LEN = 120
 
+import os
+import ssl
+import urllib.request
+from typing import Optional
+
+ssl._create_default_https_context = ssl._create_unverified_context
 
 @cache_utils.cache_func
 def scrape_text(url: str, retries: Optional[int] = 2) -> str:
+    # Create a proxy handler using environment variables
+    proxy_handler = urllib.request.ProxyHandler({
+        'http': f'http://{os.environ["YOUR_USERNAME_UNBLOCKER"]}:{os.environ["YOUR_PASSWORD_UNBLOCKER"]}@{os.environ["YOUR_HOST_UNBLOCKER"]}',
+        'https': f'http://{os.environ["YOUR_USERNAME_UNBLOCKER"]}:{os.environ["YOUR_PASSWORD_UNBLOCKER"]}@{os.environ["YOUR_HOST_UNBLOCKER"]}'
+    })
+    
+    # Build the opener with the proxy handler
+    opener = urllib.request.build_opener(proxy_handler)
+    
     try:
-        resp = requests.get(
-            url="https://app.scrapingbee.com/api/v1/",
-            params={
-                "api_key": os.environ["SCRAPINGBEE_API_KEY"],
-                "url": url,
-                "premium_proxy": "true",
-                "country_code": "us",
-            },
-        )
-    except RuntimeError as e:
+        # Open the URL and read the response
+        with opener.open(url) as response:
+            html_content = response.read().decode('utf-8')
+    except Exception as e:
+        # Retry in case of exceptions
         if retries > 0:
             return scrape_text(url, retries=retries - 1)
         else:
             raise e
-    return resp.text
+    
+    return html_content
+
 
 
 def _element_to_text(element) -> str:
