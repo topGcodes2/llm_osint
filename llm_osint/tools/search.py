@@ -1,7 +1,6 @@
 from langchain.agents import Tool
 
 from llm_osint import cache_utils
-from langchain.utils import get_from_dict_or_env
 
 
 from typing import Any, Dict, List, Optional
@@ -11,7 +10,29 @@ from langchain.pydantic_v1 import BaseModel, root_validator
 from typing_extensions import Literal
 import aiohttp
 import json
+import os
 
+
+def get_from_dict_or_env(values: dict, key: str, env_var: str) -> str:
+    """
+    Fetch a value either from a dictionary or from environment variables.
+    
+    Parameters:
+    - values (dict): The dictionary from which to fetch the value.
+    - key (str): The key in the dictionary to look for.
+    - env_var (str): The name of the environment variable to look for.
+    
+    Returns:
+    - str: The value fetched either from the dictionary or the environment variable.
+    """
+    # First, try to get the value from the dictionary
+    value = values.get(key, None)
+    
+    # If the value is None, try to get it from the environment variable
+    if value is None:
+        value = os.environ.get(env_var, None)
+    
+    return value
 
 class BrightDataSerperAPIWrapper(BaseModel):
     k: int = 10
