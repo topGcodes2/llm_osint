@@ -183,12 +183,17 @@ class GoogleSerperSearchWrapper(BrightDataSerperAPIWrapper):
 
 
 def get_search_tool(**kwargs) -> Tool:
-    search = GoogleSerperSearchWrapper(**kwargs)
+    search = GoogleSerperSearchWrapper(
+        host=os.environ["YOUR_HOST"],
+        username=os.environ["YOUR_USERNAME"],
+        password=os.environ["YOUR_PASSWORD"]
+    )
     return Tool(
         name="Search Term",
         func=search.run,
         description="useful for when you need to find information about general things, names, usernames, places, etc. the input should be a search term",
     )
+
 
 from llm_osint.tools.search import GoogleSerperSearchWrapper
 
@@ -198,11 +203,3 @@ required_env_vars = ["YOUR_HOST", "YOUR_USERNAME", "YOUR_PASSWORD"]
 for env_var in required_env_vars:
     if env_var not in os.environ:
         raise ValueError(f"Environment variable {env_var} is not set.")
-
-
-# Provide the required information
-search_tool = GoogleSerperSearchWrapper(
-    host=os.environ["YOUR_HOST"],
-    username=os.environ["YOUR_USERNAME"],
-    password=os.environ["YOUR_PASSWORD"]
-)
